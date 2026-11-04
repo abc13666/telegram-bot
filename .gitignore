@@ -5,6 +5,3 @@ __pycache__/
 .venv/
 venv/
 
-# Runtime-данные бота (chat_id подписчиков)
-subscribers.txt
-

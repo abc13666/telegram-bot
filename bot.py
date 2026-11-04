@@ -6,7 +6,7 @@ Telegram-бот для круглосуточной работы на Render.com
 - Параллельно Flask-сервер слушает порт и отвечает на health-check,
   чтобы Render считал сервис "живым".
 - Каждый день в 08:00 (Europe/Moscow) планировщик APScheduler отправляет
-  случайное романтичное сообщение всем подписчикам (файл subscribers.txt).
+  случайное романтичное сообщение одному человеку — Насте (NASTYA_ID).
 - Токен читается из переменной окружения BOT_TOKEN (не хранится в коде!).
 """
 
@@ -35,10 +35,8 @@ if not BOT_TOKEN:
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Файл, в который сохраняются chat_id подписчиков (по команде /start)
-SUBSCRIBERS_FILE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "subscribers.txt"
-)
+# Единственный получатель утренних сообщений — Настя
+NASTYA_ID = 1306544057
 
 # ------------------- Утренние сообщения для Насти -------------------
 
@@ -65,39 +63,22 @@ MORNING_MESSAGES = [
     "прекрасным, а вечером я расскажу, как сильно по тебе скучал ☕💕",
 ]
 
-# ---------------------- Подписчики (subscribers) ----------------------
-
-def load_subscribers():
-    """Читает список chat_id из файла subscribers.txt."""
-    try:
-        with open(SUBSCRIBERS_FILE, "r", encoding="utf-8") as f:
-            return [line.strip() for line in f if line.strip()]
-    except FileNotFoundError:
-        return []
-
-
-def save_subscriber(chat_id):
-    """Добавляет chat_id в subscribers.txt (без дубликатов)."""
-    subscribers = load_subscribers()
-    chat_id = str(chat_id)
-    if chat_id not in subscribers:
-        subscribers.append(chat_id)
-        with open(SUBSCRIBERS_FILE, "w", encoding="utf-8") as f:
-            f.write("\n".join(subscribers))
-        print(f"[SUBS] Новый подписчик: {chat_id}", flush=True)
-
-
 # ------------------------- Хендлеры бота -------------------------
 
 @bot.message_handler(commands=["start"])
 def handle_start(message):
-    """Приветствует пользователя и подписывает на утренние сообщения."""
-    save_subscriber(message.chat.id)
-    bot.reply_to(
-        message,
-        "Привет! Теперь я буду присылать тебе доброе утро "
-        "каждый день в 08:00 💕",
-    )
+    """Приветствует пользователя. Утренние сообщения идут только Насте."""
+    if message.chat.id == NASTYA_ID:
+        bot.reply_to(
+            message,
+            "Привет, Настюша! Я буду присылать тебе доброе утро "
+            "каждый день в 08:00 💕",
+        )
+    else:
+        bot.reply_to(
+            message,
+            "Привет! Этот бот создан для одного особенного человека 😉",
+        )
 
 
 @bot.message_handler(commands=["health"])
@@ -109,19 +90,13 @@ def handle_health(message):
 # ------------------- Утренняя рассылка (APScheduler) -------------------
 
 def send_morning_message():
-    """Выбирает случайное сообщение и отправляет всем подписчикам."""
-    subscribers = load_subscribers()
-    if not subscribers:
-        print("[SCHEDULER] Нет подписчиков — некому отправлять", flush=True)
-        return
-
+    """Отправляет случайное утреннее сообщение только Насте (NASTYA_ID)."""
     text = random.choice(MORNING_MESSAGES)
-    for chat_id in subscribers:
-        try:
-            bot.send_message(chat_id, text)
-            print(f"[SCHEDULER] Отправлено: {chat_id}", flush=True)
-        except Exception as e:
-            print(f"[SCHEDULER] Ошибка отправки {chat_id}: {e}", flush=True)
+    try:
+        bot.send_message(NASTYA_ID, text)
+        print(f"[SCHEDULER] Утреннее сообщение отправлено: {NASTYA_ID}", flush=True)
+    except Exception as e:
+        print(f"[SCHEDULER] Ошибка отправки: {e}", flush=True)
 
 
 def start_scheduler():
