@@ -13,6 +13,7 @@ Telegram-бот для круглосуточной работы на Render.com
 import os
 import random
 import threading
+import time
 
 import telebot
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -133,10 +134,37 @@ def health():
 # --------------------------- Запуск ---------------------------
 
 def run_bot_polling():
-    """Бесконечный polling Telegram в отдельном потоке."""
+    """Бесконечный polling Telegram в отдельном потоке.
+
+    Обрабатывает ошибку 409 Conflict ("terminated by other getUpdates
+    request"): она возникает при деплое на Render, когда старый экземпляр
+    бота ещё не выключился, а новый уже запустился. Вместо падения —
+    ждём 20 секунд (даём старому контейнеру время завершиться) и пробуем
+    снова. Логируем как WARNING, чтобы не пугать.
+    """
     print("[BOT] Polling запущен...", flush=True)
-    # infinity_polling сам переподключается при ошибках сети
-    bot.infinity_polling(timeout=60, long_polling_timeout=60)
+    while True:
+        try:
+            # infinity_polling сам переподключается при ошибках сети
+            bot.infinity_polling(timeout=60, long_polling_timeout=60)
+        except Exception as e:
+            error_text = str(e)
+            if "409" in error_text or "Conflict" in error_text:
+                print(
+                    "[BOT][WARNING] 409 Conflict: похоже, старый экземпляр "
+                    "бота ещё работает (деплой). Ждём 20 секунд и пробуем "
+                    "снова...",
+                    flush=True,
+                )
+                time.sleep(20)
+            else:
+                # Любая другая неожиданная ошибка — короткая пауза и повтор
+                print(
+                    f"[BOT][WARNING] Ошибка polling: {e}. "
+                    "Повтор через 10 секунд...",
+                    flush=True,
+                )
+                time.sleep(10)
 
 
 if __name__ == "__main__":

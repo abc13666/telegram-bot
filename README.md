@@ -57,6 +57,7 @@ telegram_bot/
 ├── .gitignore — исключает pycache, .env и виртуальные окружения
 └── README.md — этот файл
 
+text
 
 ---
 
@@ -81,7 +82,7 @@ telegram_bot/
 
 **Матвей Сафронов** — начинающий разработчик (Python, Flask, Telegram API).  
 GitHub: [github.com/abc13666](https://github.com/abc13666)  
-Telegram: *@abc23851*
+Telegram: *@твой_юзернейм*
 
 ---
 
